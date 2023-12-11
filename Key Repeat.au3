@@ -15,21 +15,16 @@ HotKeySet("t", "ToggleKeyPress")
 HotKeySet("f", "ToggleKeyPress")
 
 While 1
-    If WinActive("魔兽世界") Then
-        If $isKeyPressed Then
-            While _IsPressed("31") Or _IsPressed("32") Or _IsPressed("33") Or _IsPressed("34") Or _IsPressed("35") Or _
-                  _IsPressed("36") Or _IsPressed("51") Or _IsPressed("45") Or _IsPressed("52") Or _IsPressed("54") Or _IsPressed("46")
-                Local $key = StringLower(@HotKeyPressed)
-                ControlSend("", "", "", $key)
-                Sleep(10)
-            WEnd
-            $isKeyPressed = False
-        EndIf
-    Else
+    If $isKeyPressed Then
+        While _IsPressed("31") Or _IsPressed("32") Or _IsPressed("33") Or _IsPressed("34") Or _IsPressed("35") Or _
+              _IsPressed("36") Or _IsPressed("51") Or _IsPressed("45") Or _IsPressed("52") Or _IsPressed("54") Or _IsPressed("46")
+            Local $key = StringLower(@HotKeyPressed)
+            ControlSend("", "", "", $key)
+            Sleep(50 + Random(1, 50))
+        WEnd
         $isKeyPressed = False
     EndIf
-
-    Sleep(10)
+    Sleep(50 + Random(1, 50))
 WEnd
 
 Func ToggleKeyPress()
