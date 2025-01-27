@@ -3,22 +3,38 @@
 #include <WindowsConstants.au3>
 #include <StaticConstants.au3>
 #include <ButtonConstants.au3>
+#include <SliderConstants.au3>
 
 Opt("GUIOnEventMode", 1)
 
 Global $isRunning = False
-Global $isAlwaysOnTop = False
-Global $Version = "stable v0.03"
+Global $Version = "stable v0.1.1"
+
 ; 创建 GUI
-Global $gui = GUICreate("KPC " & $Version, 180, 80, -1, -1, BitOR($WS_CAPTION, $WS_SYSMENU)) ;KeyPress Controller
-Global $startButton = GUICtrlCreateButton("启动", 25, 20, 50, 30)
-Global $alwaysOnTopCheckbox = GUICtrlCreateCheckbox("置顶", 90, 25, 50, 20)
+Global $gui = GUICreate("KPC " & $Version, 120, 100, -1, -1, $WS_POPUP)
+WinSetOnTop($gui, "", True) ; 默认窗口置顶
+
+Global $startButton = GUICtrlCreateButton("开始", 10, 10, 100, 30)
+Global $opacitySlider = GUICtrlCreateSlider(10, 50, 100, 10)
+GUICtrlSetLimit($opacitySlider, 255, 50) ; 设置拖条范围，50 (最透明) 到 255 (最严格)
+GUICtrlSetData($opacitySlider, 255) ; 默认透明度
+
+Global $versionLabel = GUICtrlCreateLabel("KPC" & $Version, 10, 82, 100, 10, $SS_CENTER)
+GUICtrlSetColor($versionLabel, 0x808080) ; 设置版本号颜色为灰色
+GUICtrlSetFont($versionLabel, 8) ; 设置字体大小
 
 GUISetState(@SW_SHOW, $gui)
 
 GUICtrlSetOnEvent($startButton, "OnStartButtonClick")
-GUICtrlSetOnEvent($alwaysOnTopCheckbox, "OnAlwaysOnTopCheckbox")
+GUICtrlSetOnEvent($opacitySlider, "OnOpacitySliderChange")
 GUISetOnEvent($GUI_EVENT_CLOSE, "OnCloseWindow")
+
+Global $isDragging = False
+Global $dragOffsetX, $dragOffsetY
+
+Global $contextMenu = GUICtrlCreateContextMenu()
+Global $exitMenuItem = GUICtrlCreateMenuItem("退出", $contextMenu)
+GUICtrlSetOnEvent($exitMenuItem, "OnCloseWindow")
 
 ; 主循环
 While 1
@@ -29,16 +45,22 @@ While 1
             Exit
         Case $startButton
             OnStartButtonClick()
-        Case $alwaysOnTopCheckbox
-            OnAlwaysOnTopCheckbox()
+        Case $opacitySlider
+            OnOpacitySliderChange()
     EndSwitch
 
+    ; 检查鼠标拖动
+    HandleDrag()
+
     ; 检查目标窗口是否激活
-    If $isRunning Then
-        ; 监听按键，按下时触发相应的操作
-        ListenKeys()
-    EndIf
-	
+	If $isRunning Then
+		; 检查窗口 "魔兽世界" 是否存在且处于激活状态
+		If WinExists("魔兽世界") And WinActive("魔兽世界") Then
+			; 监听按键，按下时触发相应的操作
+			ListenKeys()
+		EndIf
+	EndIf
+
     Sleep(10) ; 防止程序卡死，定期更新 GUI
 WEnd
 
@@ -77,20 +99,60 @@ Func ListenKeys()
     EndIf
 EndFunc
 
+Func HandleDrag()
+    Local $mousePos = MouseGetPos()
+    Local $winPos = WinGetPos($gui)
+    Local $sliderPos = ControlGetPos($gui, "", $opacitySlider)
+    Local $labelPos = ControlGetPos($gui, "", $versionLabel)
+
+    If _IsPressed("01") Then ; 鼠标左键按下
+        If Not $isDragging Then
+            ; 检查是否在拖条范围内
+            If $mousePos[0] >= $sliderPos[0] + $winPos[0] And $mousePos[0] <= $sliderPos[0] + $winPos[0] + $sliderPos[2] _
+                    And $mousePos[1] >= $sliderPos[1] + $winPos[1] And $mousePos[1] <= $sliderPos[1] + $winPos[1] + $sliderPos[3] Then
+                Return ; 如果鼠标在拖条范围内，退出函数
+            EndIf
+			
+			; 检查是否在版本号范围内
+            If $mousePos[0] >= $labelPos[0] And $mousePos[0] <= $labelPos[0] + $labelPos[2] And $mousePos[1] >= $labelPos[1] And $mousePos[1] <= $labelPos[1] + $labelPos[3] Then
+                $isDragging = True
+                $dragOffsetX = $mousePos[0] - $winPos[0]
+                $dragOffsetY = $mousePos[1] - $winPos[1]
+                Return
+            EndIf
+
+            ; 检查是否在窗口范围内
+            If $mousePos[0] >= $winPos[0] And $mousePos[0] <= $winPos[0] + 120 And $mousePos[1] >= $winPos[1] And $mousePos[1] <= $winPos[1] + 100 Then
+                $isDragging = True
+                $dragOffsetX = $mousePos[0] - $winPos[0]
+                $dragOffsetY = $mousePos[1] - $winPos[1]
+            EndIf
+        EndIf
+    Else
+        $isDragging = False
+    EndIf
+
+    If $isDragging Then
+        $mousePos = MouseGetPos()
+        WinMove($gui, "", $mousePos[0] - $dragOffsetX, $mousePos[1] - $dragOffsetY)
+    EndIf
+EndFunc
+
+
 Func OnStartButtonClick()
     $isRunning = Not $isRunning
     GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
     ConsoleWrite("running " & $isRunning & @CRLF)
 EndFunc
 
-; 置顶复选框点击事件
-Func OnAlwaysOnTopCheckbox()
-    $isAlwaysOnTop = GUICtrlRead($alwaysOnTopCheckbox) = $GUI_CHECKED
-    WinSetOnTop($gui, "", $isAlwaysOnTop)
+Func OnOpacitySliderChange()
+    Local $opacity = GUICtrlRead($opacitySlider)
+    WinSetTrans($gui, "", $opacity)
+    ConsoleWrite("Opacity changed to: " & $opacity & @CRLF)
 EndFunc
 
 Func OnCloseWindow()
-    ; 在窗口关闭时，做一些清理工作
+    ; 在窗口关闭时，做些清理工作
     ConsoleWrite("Window closed. Exiting the program." & @CRLF)
     Exit
 EndFunc
