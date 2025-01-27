@@ -8,7 +8,7 @@
 Opt("GUIOnEventMode", 1)
 
 Global $isRunning = False
-Global $Version = "stable v0.1.1"
+Global $Version = "stable v0.1.2"
 
 ; 创建 GUI
 Global $gui = GUICreate("KPC " & $Version, 120, 100, -1, -1, $WS_POPUP)
@@ -143,6 +143,15 @@ Func OnStartButtonClick()
     $isRunning = Not $isRunning
     GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
     ConsoleWrite("running " & $isRunning & @CRLF)
+	
+	If $isRunning Then
+        ; 改变按钮背景颜色为浅红色
+        GUICtrlSetBkColor($startButton, 0xFFC0CB) ; 浅红色 (粉色)
+    Else
+        ; 恢复默认按钮背景颜色
+        GUICtrlSetBkColor($startButton, 0xFFFFFF) ; 白色
+    EndIf
+	
 EndFunc
 
 Func OnOpacitySliderChange()
