@@ -6,9 +6,16 @@
 
 Opt("GUIOnEventMode", 1)
 
-Global $isRunning = False
-Global $Version = " v0.1.4"
+
+; --- version ---
+Global $Version = " v0.1.5"
+
+; --- window ---
 Global $targetWindowName = "魔兽世界" ; 参数化目标窗口名称
+
+
+Global $isRunning = False
+
 Global $isFixed = False             ; 默认窗口不锁定，可拖动
 
 ; --- 新增全局计时器变量，用于实现按键重复发送 ---
@@ -70,10 +77,22 @@ Global $contextMenu = GUICtrlCreateContextMenu()
 ; 透明度菜单项
 Global $opacityMenu = GUICtrlCreateMenu("透明度", $contextMenu)
 Global $menuOpacityMap[10]
+
+;-------------------------------
+; 初始化透明度菜单项，默认勾上 100%
+;-------------------------------
 For $i = 1 To 10
-    $menuOpacityMap[$i - 1] = GUICtrlCreateMenuItem(($i * 10) & "%", $opacityMenu)
+    Local $num = ($i * 10) & "%"   ; 例如 "10%", "20%"…… "100%"
+    If $i = 10 Then
+        ; 默认“100%”选项前加“√　”，并设置主窗口透明度为 255（即 100%）
+        $menuOpacityMap[$i - 1] = GUICtrlCreateMenuItem("✔" & $num, $opacityMenu)
+        WinSetTrans($gui, "", 255)
+    Else
+        $menuOpacityMap[$i - 1] = GUICtrlCreateMenuItem("     " & $num, $opacityMenu)
+    EndIf
     GUICtrlSetOnEvent($menuOpacityMap[$i - 1], "OnOpacityMenuSelect")
 Next
+
 
 ; 锁定窗口菜单项（初始状态：未锁定，不打勾）
 Global $fixedMenuItem = GUICtrlCreateMenuItem("锁定窗口", $contextMenu)
@@ -469,20 +488,25 @@ Func OnStartButtonClick()
     EndIf
 EndFunc
 
-;------------------------------------------------------------------
+;-------------------------------
 ; 透明度菜单选择回调函数
-;------------------------------------------------------------------
 Func OnOpacityMenuSelect()
     Local $id = @GUI_CTRLID
     For $i = 0 To UBound($menuOpacityMap) - 1
+        Local $num = (10 * ($i + 1)) & "%"  ; 原始百分比字符串
         If $menuOpacityMap[$i] = $id Then
             Local $opacity = (10 * ($i + 1)) * 2.55
             ConsoleWrite("Selected Opacity: " & $opacity & @CRLF)
             WinSetTrans($gui, "", $opacity)
-            ExitLoop
+            ; 选中项：前缀改为“√”后跟一个全角空格（注意：全角空格为 "　"）
+            GUICtrlSetData($menuOpacityMap[$i], "✔" & $num)
+        Else
+            ; 未选中项：前缀用两个全角空格，保证数字起始位置与选中项一致
+            GUICtrlSetData($menuOpacityMap[$i], "     " & $num)
         EndIf
     Next
 EndFunc
+
 
 ;------------------------------------------------------------------
 ; 锁定/解锁窗口回调函数
@@ -491,7 +515,7 @@ Func OnFixedMenuSelect()
     ; 切换锁定状态
     $isFixed = Not $isFixed
     If $isFixed Then
-        GUICtrlSetData($fixedMenuItem, "锁定窗口✔")
+        GUICtrlSetData($fixedMenuItem, "✔ 锁定窗口")
         ConsoleWrite("窗口已锁定，不可移动" & @CRLF)
     Else
         GUICtrlSetData($fixedMenuItem, "锁定窗口")
