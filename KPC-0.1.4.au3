@@ -350,6 +350,8 @@ EndFunc
 ; ListenKeys()：整合所有按键监听逻辑
 ;------------------------------------------------------------------
 Func ListenKeys()
+	If Not WinActive($targetWindowName) Then Return
+		
     ; 数字键 1～6 分别采用直接检测组合键方式
     HandleKey1()
     HandleKey2()
