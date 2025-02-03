@@ -8,15 +8,24 @@ Opt("GUIOnEventMode", 1)
 
 
 ; --- version ---
-Global $Version = " v0.1.5"
+Global $Version = " v0.1.6"
 
 ; --- window ---
 Global $targetWindowName = "魔兽世界" ; 参数化目标窗口名称
 
 
 Global $isRunning = False
-
+; 在全局变量区添加一个定时器变量，用于计算颜色变化的时间
+Global $g_colorTimer = TimerInit()
 Global $isFixed = False             ; 默认窗口不锁定，可拖动
+
+;-----------------------------------------------------------
+; 全局变量：当前颜色（浮点数用于平滑过渡）及目标颜色
+;-----------------------------------------------------------
+Global $currR = 255, $currG = 255, $currB = 255
+Global $targetR = Random(0, 255, 1), $targetG = Random(0, 255, 1), $targetB = Random(0, 255, 1)
+; 颜色过渡因子（可调，值越大变化越快）
+Global $colorTransitionFactor = 0.3
 
 ; --- 新增全局计时器变量，用于实现按键重复发送 ---
 Global $g_TimerKey1 = 0
@@ -46,11 +55,11 @@ Global $g_bShift6Active = False
 Global $gui = GUICreate("KPC " & $Version, 120, 100, -1, -1, $WS_POPUP)
 WinSetOnTop($gui, "", True) ; 默认窗口置顶
 
-Global $startButton = GUICtrlCreateButton("开始", 10, 10, 100, 30)
-Global $versionLabel = GUICtrlCreateLabel("KPC" & $Version, 10, 82, 100, 10, $SS_CENTER)
+Global $gui = GUICreate("KPC " & $Version, 100, 80, -1, -1, $WS_POPUP, BitOR($WS_EX_TOPMOST, 0x02000000)) 
+Global $startButton = GUICtrlCreateButton("开始", 10, 10, 80, 30)
+Global $versionLabel = GUICtrlCreateLabel("KPC" & $Version, 0, 60, 100, 10, $SS_CENTER)
 GUICtrlSetColor($versionLabel, 0x808080) ; 设置版本号颜色为灰色
 GUICtrlSetFont($versionLabel, 8)          ; 设置字体大小
-
 GUISetState(@SW_SHOW, $gui)
 
 ; --- 设置圆角效果 ---
@@ -112,7 +121,7 @@ While 1
         Case $startButton
             OnStartButtonClick()
     EndSwitch
-
+	
     ; 如果窗口未锁定，则允许拖拽移动
     If Not $isFixed Then
         HandleDrag()
@@ -129,7 +138,8 @@ While 1
     If $isRunning Then
         ListenKeys()
     EndIf
-
+	
+	UpdateButtonColor()
     Sleep(10) ; 防止程序卡死，定期更新 GUI
 WEnd
 
@@ -480,8 +490,7 @@ Func OnStartButtonClick()
     GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
     ConsoleWrite("running " & $isRunning & @CRLF)
     If $isRunning Then
-        ; 改变按钮背景颜色为浅红色
-        GUICtrlSetBkColor($startButton, 0xFFC0CB)
+        WinActivate($targetWindowName)
     Else
         ; 恢复默认按钮背景颜色
         GUICtrlSetBkColor($startButton, 0xFFFFFF)
@@ -520,6 +529,36 @@ Func OnFixedMenuSelect()
     Else
         GUICtrlSetData($fixedMenuItem, "锁定窗口")
         ConsoleWrite("窗口可移动" & @CRLF)
+    EndIf
+EndFunc
+
+;-------------------------------
+; 新增：更新开始按钮背景颜色函数
+Func UpdateButtonColor()
+    ; 仅当处于运行状态时更新颜色
+    If $isRunning Then
+        ; 逐渐平滑过渡：当前颜色向目标颜色靠拢
+        $currR = $currR + ($targetR - $currR) * $colorTransitionFactor
+        $currG = $currG + ($targetG - $currG) * $colorTransitionFactor
+        $currB = $currB + ($targetB - $currB) * $colorTransitionFactor
+
+        ; 如果当前颜色已经非常接近目标颜色，则生成新的目标颜色（随机RGB）
+        If Abs($targetR - $currR) < 1 And Abs($targetG - $currG) < 1 And Abs($targetB - $currB) < 1 Then
+            $targetR = Random(0, 255, 1)
+            $targetG = Random(0, 255, 1)
+            $targetB = Random(0, 255, 1)
+        EndIf
+
+        ; 将浮点数转换为整数
+        Local $intR = Int($currR)
+        Local $intG = Int($currG)
+        Local $intB = Int($currB)
+
+        ; 计算新颜色（格式：0xRRGGBB）
+        Local $newColor = ($intR * 0x10000) + ($intG * 0x100) + $intB
+
+        ; 更新“开始”按钮的背景色
+        GUICtrlSetBkColor($startButton, $newColor)
     EndIf
 EndFunc
 
