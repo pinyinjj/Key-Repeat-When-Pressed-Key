@@ -4,17 +4,17 @@
 #include <StaticConstants.au3>
 #include <ButtonConstants.au3>
 #NoTrayIcon
+#AutoIt3Wrapper_Icon=icon.ico
 
 Opt("WinTitleMatchMode", 4)
 Opt("GUIOnEventMode", 1)
 
 
 ; --- version ---
-Global $Version = " v0.1.8"
+Global $Version = " v0.1.9"
 
 ; --- window ---
-Global $targetWindowName = "^魔兽世界$"
-
+Global $targetWindowName = "魔兽世界"
 
 Global $isRunning = False
 ; 在全局变量区添加一个定时器变量，用于计算颜色变化的时间
@@ -54,21 +54,20 @@ Global $g_bShift5Active = False
 Global $g_bShift6Active = False
 
 ; --- 创建 GUI ---
-Global $gui = GUICreate("KPC " & $Version, 120, 100, -1, -1, $WS_POPUP)
-WinSetOnTop($gui, "", True) ; 默认窗口置顶
-
 Global $gui = GUICreate("KPC " & $Version, 100, 80, -1, -1, $WS_POPUP, BitOR($WS_EX_TOPMOST, 0x02000000)) 
-Global $startButton = GUICtrlCreateButton("开始", 10, 10, 80, 30)
+WinSetOnTop($gui, "", True) ; 默认窗口置顶
+Global $startButton = GUICtrlCreateButton("我 爱 罗", 10, 10, 80, 30)
 Global $versionLabel = GUICtrlCreateLabel("KPC" & $Version, 0, 60, 100, 10, $SS_CENTER)
 GUICtrlSetColor($versionLabel, 0x808080) ; 设置版本号颜色为灰色
 GUICtrlSetFont($versionLabel, 8)          ; 设置字体大小
+GUISetIcon(@ScriptDir & "\icon.ico", $gui)
 GUISetState(@SW_SHOW, $gui)
 
 ; --- 设置圆角效果 ---
 Local $aPos = WinGetPos($gui)
 Local $iWidth = $aPos[2]
 Local $iHeight = $aPos[3]
-Local $iRound = 20 ; 圆角半径，可根据需要调整
+Local $iRound = 30; 圆角半径，可根据需要调整
 Local $aRet = DllCall("gdi32.dll", "hwnd", "CreateRoundRectRgn", "int", 0, "int", 0, "int", $iWidth + 1, "int", $iHeight + 1, "int", $iRound, "int", $iRound)
 If Not @error And IsArray($aRet) Then
     DllCall("user32.dll", "int", "SetWindowRgn", "hwnd", $gui, "hwnd", $aRet[0], "int", True)
@@ -116,6 +115,7 @@ GUICtrlSetOnEvent($exitMenuItem, "OnCloseWindow")
 ; --- 主循环 ---
 While 1
     $msg = GUIGetMsg() ; 获取窗口消息
+
     Switch $msg
         Case $GUI_EVENT_CLOSE
             OnCloseWindow()
@@ -487,9 +487,13 @@ EndFunc
 ; 开始/停止按钮回调函数
 ;------------------------------------------------------------------
 Func OnStartButtonClick()
+    ; 仅允许鼠标左键点击触发，而不允许回车（Enter）或空格（Space）触发
+    If Not (GUIGetCursorInfo($gui)[4]) Then Return
+
     $isRunning = Not $isRunning
     GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
     ConsoleWrite("running " & $isRunning & @CRLF)
+
     If $isRunning Then
         WinActivate($targetWindowName)
     Else
@@ -497,6 +501,8 @@ Func OnStartButtonClick()
         GUICtrlSetBkColor($startButton, 0xFFFFFF)
     EndIf
 EndFunc
+
+
 
 ;-------------------------------
 ; 透明度菜单选择回调函数
@@ -533,15 +539,16 @@ Func OnFixedMenuSelect()
     EndIf
 EndFunc
 
-Func IsTargetWindowActive()
-    Local $hTarget = WinGetHandle($targetWindowName)
-    If $hTarget <> "" And WinActive($hTarget) Then
-        Local $title = WinGetTitle($hTarget)
-        If $title = $targetWindowName Then
-            Return True
+; 定义一个函数，遍历所有窗口，返回标题完全等于目标字符串的窗口句柄
+Func FindExactWindow($sExactTitle)
+    Local $aList = WinList()
+    For $i = 1 To $aList[0][0]
+        ; 如果窗口标题完全相同，则返回该窗口句柄
+        If $aList[$i][0] = $sExactTitle Then
+            Return $aList[$i][1]
         EndIf
-    EndIf
-    Return False
+    Next
+    Return ""
 EndFunc
 
 ;-------------------------------
@@ -573,6 +580,8 @@ Func UpdateButtonColor()
         GUICtrlSetBkColor($startButton, $newColor)
     EndIf
 EndFunc
+
+
 
 ;------------------------------------------------------------------
 ; 关闭窗口回调函数
