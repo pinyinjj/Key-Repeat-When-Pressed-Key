@@ -11,7 +11,7 @@ Opt("GUIOnEventMode", 1)
 
 
 ; --- version ---
-Global $Version = " v0.1.9"
+Global $Version = " v0.1.10"
 
 ; --- window ---
 Global $targetWindowName = "魔兽世界"
@@ -491,16 +491,23 @@ Func OnStartButtonClick()
     If Not (GUIGetCursorInfo($gui)[4]) Then Return
 
     $isRunning = Not $isRunning
-    GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
-    ConsoleWrite("running " & $isRunning & @CRLF)
 
+    ; 先更新按钮文本
+    GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
+
+    ; 立即调用颜色更新函数
     If $isRunning Then
         WinActivate($targetWindowName)
     Else
-        ; 恢复默认按钮背景颜色
+        ; 恢复默认按钮颜色为白色，并将文本颜色设为黑色
         GUICtrlSetBkColor($startButton, 0xFFFFFF)
+        GUICtrlSetColor($startButton, 0x000000)
+        WinActivate($targetWindowName)
     EndIf
+
+    ConsoleWrite("running " & $isRunning & @CRLF)
 EndFunc
+
 
 
 
@@ -539,47 +546,40 @@ Func OnFixedMenuSelect()
     EndIf
 EndFunc
 
-; 定义一个函数，遍历所有窗口，返回标题完全等于目标字符串的窗口句柄
-Func FindExactWindow($sExactTitle)
-    Local $aList = WinList()
-    For $i = 1 To $aList[0][0]
-        ; 如果窗口标题完全相同，则返回该窗口句柄
-        If $aList[$i][0] = $sExactTitle Then
-            Return $aList[$i][1]
-        EndIf
-    Next
-    Return ""
-EndFunc
-
 ;-------------------------------
 ; 新增：更新开始按钮背景颜色函数
 Func UpdateButtonColor()
     ; 仅当处于运行状态时更新颜色
-    If $isRunning Then
-        ; 逐渐平滑过渡：当前颜色向目标颜色靠拢
-        $currR = $currR + ($targetR - $currR) * $colorTransitionFactor
-        $currG = $currG + ($targetG - $currG) * $colorTransitionFactor
-        $currB = $currB + ($targetB - $currB) * $colorTransitionFactor
+    If Not $isRunning Then Return
 
-        ; 如果当前颜色已经非常接近目标颜色，则生成新的目标颜色（随机RGB）
-        If Abs($targetR - $currR) < 1 And Abs($targetG - $currG) < 1 And Abs($targetB - $currB) < 1 Then
-            $targetR = Random(0, 255, 1)
-            $targetG = Random(0, 255, 1)
-            $targetB = Random(0, 255, 1)
-        EndIf
+    ; 逐渐平滑过渡：当前颜色向目标颜色靠拢
+    $currR = $currR + ($targetR - $currR) * $colorTransitionFactor
+    $currG = $currG + ($targetG - $currG) * $colorTransitionFactor
+    $currB = $currB + ($targetB - $currB) * $colorTransitionFactor
 
-        ; 将浮点数转换为整数
-        Local $intR = Int($currR)
-        Local $intG = Int($currG)
-        Local $intB = Int($currB)
-
-        ; 计算新颜色（格式：0xRRGGBB）
-        Local $newColor = ($intR * 0x10000) + ($intG * 0x100) + $intB
-
-        ; 更新“开始”按钮的背景色
-        GUICtrlSetBkColor($startButton, $newColor)
+    ; 如果当前颜色已经非常接近目标颜色，则生成新的目标颜色（随机RGB）
+    If Abs($targetR - $currR) < 1 And Abs($targetG - $currG) < 1 And Abs($targetB - $currB) < 1 Then
+        $targetR = Random(0, 255, 1)
+        $targetG = Random(0, 255, 1)
+        $targetB = Random(0, 255, 1)
     EndIf
+
+    ; 将浮点数转换为整数
+    Local $intR = Int($currR)
+    Local $intG = Int($currG)
+    Local $intB = Int($currB)
+
+    ; 计算新颜色（格式：0xRRGGBB）
+    Local $newColor = ($intR * 0x10000) + ($intG * 0x100) + $intB
+
+    ; 计算反色（文本颜色）
+    Local $inverseColor = 0xFFFFFF - $newColor
+
+    ; 更新按钮的背景色和文本颜色
+    GUICtrlSetBkColor($startButton, $newColor)
+    GUICtrlSetColor($startButton, $inverseColor)
 EndFunc
+
 
 
 
