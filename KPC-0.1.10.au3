@@ -9,9 +9,10 @@
 Opt("WinTitleMatchMode", 4)
 Opt("GUIOnEventMode", 1)
 
+RegWrite("HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys", "Flags", "REG_SZ", "506")
 
 ; --- version ---
-Global $Version = " v0.1.10"
+Global $Version = " v0.2.10"
 
 ; --- window ---
 Global $targetWindowName = "魔兽世界"
@@ -56,7 +57,7 @@ Global $g_bShift6Active = False
 ; --- 创建 GUI ---
 Global $gui = GUICreate("KPC " & $Version, 100, 80, -1, -1, $WS_POPUP, BitOR($WS_EX_TOPMOST, 0x02000000)) 
 WinSetOnTop($gui, "", True) ; 默认窗口置顶
-Global $startButton = GUICtrlCreateButton("我 爱 罗", 10, 10, 80, 30)
+Global $startButton = GUICtrlCreateButton("开始", 10, 10, 80, 30)
 Global $versionLabel = GUICtrlCreateLabel("KPC" & $Version, 0, 60, 100, 10, $SS_CENTER)
 GUICtrlSetColor($versionLabel, 0x808080) ; 设置版本号颜色为灰色
 GUICtrlSetFont($versionLabel, 8)          ; 设置字体大小
