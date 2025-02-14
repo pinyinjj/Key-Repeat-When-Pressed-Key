@@ -12,7 +12,7 @@ Opt("GUIOnEventMode", 1)
 RegWrite("HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys", "Flags", "REG_SZ", "506")
 
 ; --- version ---
-Global $Version = " v0.2.10"
+Global $Version = " v0.1.10"
 
 ; --- window ---
 Global $targetWindowName = "魔兽世界"

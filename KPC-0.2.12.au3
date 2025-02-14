@@ -17,7 +17,7 @@ RegWrite("HKEY_CURRENT_USER\Control Panel\Accessibility\StickyKeys", "Flags", "R
 ; -------------------------
 ; 全局变量声明
 ; -------------------------
-Global $Version             = " v0.2.11"
+Global $Version             = " v0.2.12"
 Global $targetWindowName    = "魔兽世界"
 
 Global $isRunning           = False
@@ -99,9 +99,6 @@ Next
 
 GUICtrlSetOnEvent($startButton, "OnStartButtonClick") 
 
-; 锁定窗口菜单项
-Global $fixedMenuItem = GUICtrlCreateMenuItem("锁定窗口", $contextMenu)
-GUICtrlSetOnEvent($fixedMenuItem, "OnFixedMenuSelect")
 
 ; “采轻歌花”菜单项（自动右键点击功能）
 Global $autoRightClickMenuItem = GUICtrlCreateMenuItem("采轻歌花", $contextMenu)
@@ -125,7 +122,7 @@ While 1
     EndSwitch
 
     ; 若未锁定则允许拖拽移动
-    If Not $isFixed Then
+    If Not $isRunning Then
         HandleDrag()
     EndIf
 
@@ -283,6 +280,8 @@ EndFunc
 ; 开始/停止按钮回调函数
 ;------------------------------------------------------------------
 Func OnStartButtonClick()
+	If Not (GUIGetCursorInfo($gui)[4]) Then Return
+	
     ConsoleWrite("Start/Stop button clicked." & @CRLF)  ; 添加调试输出
     $isRunning = Not $isRunning
     GUICtrlSetData($startButton, $isRunning ? "停止" : "启动")
@@ -290,6 +289,9 @@ Func OnStartButtonClick()
         ConsoleWrite("Application is running." & @CRLF)
         WinActivate($targetWindowName)
     Else
+		GUICtrlSetBkColor($startButton, 0xFFFFFF)
+        GUICtrlSetColor($startButton, 0x000000)
+        WinActivate($targetWindowName)
         ConsoleWrite("Application stopped." & @CRLF)
     EndIf
 EndFunc
@@ -314,20 +316,6 @@ Func OnOpacityMenuSelect()
 EndFunc
 
 ;------------------------------------------------------------------
-; 锁定/解锁窗口回调函数
-;------------------------------------------------------------------
-Func OnFixedMenuSelect()
-    $isFixed = Not $isFixed
-    If $isFixed Then
-        GUICtrlSetData($fixedMenuItem, "✔ 锁定窗口")
-        ConsoleWrite("窗口已锁定，不可移动" & @CRLF)
-    Else
-        GUICtrlSetData($fixedMenuItem, "锁定窗口")
-        ConsoleWrite("窗口可移动" & @CRLF)
-    EndIf
-EndFunc
-
-;------------------------------------------------------------------
 ; "采轻歌花" 菜单点击回调函数（自动右键点击）
 ;------------------------------------------------------------------
 Func OnAutoRightClickSelect()
@@ -347,27 +335,22 @@ EndFunc
 Func UpdateButtonColor()
     If Not $isRunning Then Return
 
-    ; 逐渐平滑过渡：当前颜色向目标颜色靠拢
-    $currR = $currR + ($targetR - $currR) * $colorTransitionFactor
-    $currG = $currG + ($targetG - $currG) * $colorTransitionFactor
-    $currB = $currB + ($targetB - $currB) * $colorTransitionFactor
+    Local $t = $colorTransitionFactor
+    $currR += ($targetR - $currR) * $t
+    $currG += ($targetG - $currG) * $t
+    $currB += ($targetB - $currB) * $t
 
-    ; 如果当前颜色已经非常接近目标颜色，则生成新的目标颜色（随机RGB）
-    If Abs($targetR - $currR) < 1 And Abs($targetG - $currG) < 1 And Abs($targetB - $currB) < 1 Then
+    If Abs($currR - $targetR) < 1 And Abs($currG - $targetG) < 1 And Abs($currB - $targetB) < 1 Then
         $targetR = Random(0, 255, 1)
         $targetG = Random(0, 255, 1)
         $targetB = Random(0, 255, 1)
     EndIf
 
-    Local $intR = Int($currR)
-    Local $intG = Int($currG)
-    Local $intB = Int($currB)
-    Local $newColor = ($intR * 0x10000) + ($intG * 0x100) + $intB
-    Local $inverseColor = 0xFFFFFF - $newColor
-
+    Local $newColor = Int($currR) * 0x10000 + Int($currG) * 0x100 + Int($currB)
     GUICtrlSetBkColor($startButton, $newColor)
-    GUICtrlSetColor($startButton, $inverseColor)
+    GUICtrlSetColor($startButton, 0xFFFFFF - $newColor)
 EndFunc
+
 
 ;------------------------------------------------------------------
 ; 关闭窗口回调函数
